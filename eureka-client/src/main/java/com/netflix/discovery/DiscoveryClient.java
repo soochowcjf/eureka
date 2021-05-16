@@ -308,12 +308,16 @@ public class DiscoveryClient implements EurekaClient {
             this.healthCheckHandlerProvider = null;
             this.preRegistrationHandler = null;
         }
-        
+
+        //服务实例管理组件
         this.applicationInfoManager = applicationInfoManager;
+        //服务实例信息
         InstanceInfo myInfo = applicationInfoManager.getInfo();
 
+        //eurekaClient的配置
         clientConfig = config;
         staticClientConfig = clientConfig;
+        //
         transportConfig = config.getTransportConfig();
         instanceInfo = myInfo;
         if (myInfo != null) {
@@ -332,12 +336,14 @@ public class DiscoveryClient implements EurekaClient {
         remoteRegionsToFetch = new AtomicReference<String>(clientConfig.fetchRegistryForRemoteRegions());
         remoteRegionsRef = new AtomicReference<>(remoteRegionsToFetch.get() == null ? null : remoteRegionsToFetch.get().split(","));
 
+        //是否要拉取注册表
         if (config.shouldFetchRegistry()) {
             this.registryStalenessMonitor = new ThresholdLevelsMetric(this, METRIC_REGISTRY_PREFIX + "lastUpdateSec_", new long[]{15L, 30L, 60L, 120L, 240L, 480L});
         } else {
             this.registryStalenessMonitor = ThresholdLevelsMetric.NO_OP_METRIC;
         }
 
+        //是否要注册
         if (config.shouldRegisterWithEureka()) {
             this.heartbeatStalenessMonitor = new ThresholdLevelsMetric(this, METRIC_REGISTRATION_PREFIX + "lastHeartbeatSec_", new long[]{15L, 30L, 60L, 120L, 240L, 480L});
         } else {
@@ -346,6 +352,7 @@ public class DiscoveryClient implements EurekaClient {
 
         logger.info("Initializing Eureka in region {}", clientConfig.getRegion());
 
+        //如果不需要拉取和注册，则释放一些资源
         if (!config.shouldRegisterWithEureka() && !config.shouldFetchRegistry()) {
             logger.info("Client configured to neither register nor query for data.");
             scheduler = null;
@@ -368,12 +375,14 @@ public class DiscoveryClient implements EurekaClient {
 
         try {
             // default size of 2 - 1 each for heartbeat and cacheRefresh
+            //调度线程池
             scheduler = Executors.newScheduledThreadPool(2,
                     new ThreadFactoryBuilder()
                             .setNameFormat("DiscoveryClient-%d")
                             .setDaemon(true)
                             .build());
 
+            //心跳线程池
             heartbeatExecutor = new ThreadPoolExecutor(
                     1, clientConfig.getHeartbeatExecutorThreadPoolSize(), 0, TimeUnit.SECONDS,
                     new SynchronousQueue<Runnable>(),
@@ -383,6 +392,7 @@ public class DiscoveryClient implements EurekaClient {
                             .build()
             );  // use direct handoff
 
+            //缓存刷新线程池
             cacheRefreshExecutor = new ThreadPoolExecutor(
                     1, clientConfig.getCacheRefreshExecutorThreadPoolSize(), 0, TimeUnit.SECONDS,
                     new SynchronousQueue<Runnable>(),
@@ -392,7 +402,9 @@ public class DiscoveryClient implements EurekaClient {
                             .build()
             );  // use direct handoff
 
+            //支持底层的eureka client跟eureka server进行网络通信的组件
             eurekaTransport = new EurekaTransport();
+            //对网络通信组件进行初始化工作
             scheduleServerEndpointTask(eurekaTransport, args);
 
             AzToRegionMapper azToRegionMapper;
@@ -409,6 +421,7 @@ public class DiscoveryClient implements EurekaClient {
             throw new RuntimeException("Failed to initialize DiscoveryClient!", e);
         }
 
+        //如果需要抓取注册表，就去拉取
         if (clientConfig.shouldFetchRegistry() && !fetchRegistry(false)) {
             fetchRegistryFromBackup();
         }
@@ -417,6 +430,7 @@ public class DiscoveryClient implements EurekaClient {
         if (this.preRegistrationHandler != null) {
             this.preRegistrationHandler.beforeRegistration();
         }
+        //初始化调度任务
         initScheduledTasks();
 
         try {
@@ -453,6 +467,7 @@ public class DiscoveryClient implements EurekaClient {
         }
         
         // Ignore the raw types warnings since the client filter interface changed between jersey 1/2
+        //创建底层通信组件EurekaHttpClient的工厂
         @SuppressWarnings("rawtypes")
         TransportClientFactories transportClientFactories = argsTransportClientFactories == null
                 ? new Jersey1TransportClientFactories()
@@ -486,6 +501,7 @@ public class DiscoveryClient implements EurekaClient {
                 applicationsSource
         );
 
+        //如果需要注册
         if (clientConfig.shouldRegisterWithEureka()) {
             EurekaHttpClientFactory newRegistrationClientFactory = null;
             EurekaHttpClient newRegistrationClient = null;
@@ -495,6 +511,7 @@ public class DiscoveryClient implements EurekaClient {
                         eurekaTransport.transportClientFactory,
                         transportConfig
                 );
+                //创建底层注册的http客户端
                 newRegistrationClient = newRegistrationClientFactory.newClient();
             } catch (Exception e) {
                 logger.warn("Transport initialization failure", e);
@@ -503,6 +520,7 @@ public class DiscoveryClient implements EurekaClient {
             eurekaTransport.registrationClient = newRegistrationClient;
         }
 
+        //如果需要拉取
         // new method (resolve from primary servers for read)
         // Configure new transport layer (candidate for injecting in the future)
         if (clientConfig.shouldFetchRegistry()) {
@@ -517,6 +535,7 @@ public class DiscoveryClient implements EurekaClient {
                         applicationInfoManager.getInfo(),
                         applicationsSource
                 );
+                //创建查询http客户端
                 newQueryClient = newQueryClientFactory.newClient();
             } catch (Exception e) {
                 logger.warn("Transport initialization failure", e);
