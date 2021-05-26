@@ -97,6 +97,7 @@ public class PeerEurekaNodes {
 
                 }
             };
+            //10min执行一次
             taskExecutor.scheduleWithFixedDelay(
                     peersUpdateTask,
                     serverConfig.getPeerEurekaNodesUpdateIntervalMs(),
@@ -158,8 +159,11 @@ public class PeerEurekaNodes {
         }
 
         Set<String> toShutdown = new HashSet<>(peerEurekaNodeUrls);
+        //之前的集群地址-新读取的集群地址=两者的差异（即需要移除的集群节点）
         toShutdown.removeAll(newPeerUrls);
+
         Set<String> toAdd = new HashSet<>(newPeerUrls);
+        //新读取的集群节点-之前的集群节点=两者差异（需要新增的集群节点）
         toAdd.removeAll(peerEurekaNodeUrls);
 
         if (toShutdown.isEmpty() && toAdd.isEmpty()) { // No change
@@ -187,6 +191,7 @@ public class PeerEurekaNodes {
         if (!toAdd.isEmpty()) {
             logger.info("Adding new peer nodes {}", toAdd);
             for (String peerUrl : toAdd) {
+                //创建集群节点
                 newNodeList.add(createPeerEurekaNode(peerUrl));
             }
         }
@@ -196,6 +201,7 @@ public class PeerEurekaNodes {
     }
 
     protected PeerEurekaNode createPeerEurekaNode(String peerEurekaNodeUrl) {
+        //集群复制的http客户端
         HttpReplicationClient replicationClient = JerseyReplicationClient.createReplicationClient(serverConfig, serverCodecs, peerEurekaNodeUrl);
         String targetHost = hostFromUrl(peerEurekaNodeUrl);
         if (targetHost == null) {

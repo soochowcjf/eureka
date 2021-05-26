@@ -48,6 +48,10 @@ public class Jersey2ReplicationClient extends AbstractJersey2EurekaHttpClient im
         this.eurekaJersey2Client = eurekaJersey2Client;
     }
 
+    /**
+     * 同步的组件，携带的请求头，标志他是其他节点同步过来的
+     * @param webResource
+     */
     @Override
     protected void addExtraHeaders(Builder webResource) {
         webResource.header(PeerEurekaNode.HEADER_REPLICATION, "true");

@@ -1390,8 +1390,6 @@ public class DiscoveryClient implements EurekaClient {
     }
 
     /**
-     * 刷新当前本地的实例配置信息，如果配置有修改，则将instanceInfo中的isInstanceInfoDirty设置为true，并且将lastDirtyTimestamp设置为当前时间
-     *
      * Refresh the current local instanceInfo. Note that after a valid refresh where changes are observed, the
      * isDirty flag on the instanceInfo is set to true
      */
@@ -1452,8 +1450,6 @@ public class DiscoveryClient implements EurekaClient {
     }
 
     /**
-     * 增量拉取注册中心
-     *
      * The task that fetches the registry information at specified intervals.
      *
      */

@@ -153,7 +153,10 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     public void init(PeerEurekaNodes peerEurekaNodes) throws Exception {
         this.numberOfReplicationsLastMin.start();
         this.peerEurekaNodes = peerEurekaNodes;
+        //初始化缓存
         initializedResponseCache();
+
+        //初始化服务续约心跳数的task
         scheduleRenewalThresholdUpdateTask();
         initRemoteRegionRegistry();
 
@@ -185,6 +188,8 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     }
 
     /**
+     * 15min执行一次
+     *
      * Schedule the task that updates <em>renewal threshold</em> periodically.
      * The renewal threshold would be used to determine if the renewals drop
      * dramatically because of network partition and to protect expiring too
@@ -192,6 +197,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      *
      */
     private void scheduleRenewalThresholdUpdateTask() {
+        //15min执行一次
         timer.schedule(new TimerTask() {
                            @Override
                            public void run() {
@@ -211,6 +217,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         // Copy entire entry from neighboring DS node
         int count = 0;
 
+        //默认重试五次
         for (int i = 0; ((i < serverConfig.getRegistrySyncRetries()) && (count == 0)); i++) {
             if (i > 0) {
                 try {
@@ -225,6 +232,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                 for (InstanceInfo instance : app.getInstances()) {
                     try {
                         if (isRegisterable(instance)) {
+                            //因为是先去其他节点拉取的注册表，自己是没有注册的，这时便会执行自己的注册
                             register(instance, instance.getLeaseInfo().getDurationInSecs(), true);
                             count++;
                         }
@@ -240,7 +248,10 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     @Override
     public void openForTraffic(ApplicationInfoManager applicationInfoManager, int count) {
         // Renewals happen every 30 seconds and for a minute it should be a factor of 2.
+        //计算总的服务实例数，每分钟所需要的心跳数量
         this.expectedNumberOfRenewsPerMin = count * 2;
+
+        //每分钟最少需要的心跳数量
         this.numberOfRenewsPerMinThreshold =
                 (int) (this.expectedNumberOfRenewsPerMin * serverConfig.getRenewalPercentThreshold());
         logger.info("Got " + count + " instances from neighboring DS node");
@@ -384,7 +395,9 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
             synchronized (lock) {
                 if (this.expectedNumberOfRenewsPerMin > 0) {
                     // Since the client wants to cancel it, reduce the threshold (1 for 30 seconds, 2 for a minute)
+                    //每下线一个服务实例，每分钟需要心跳数就-2
                     this.expectedNumberOfRenewsPerMin = this.expectedNumberOfRenewsPerMin - 2;
+                    //重新计算每分钟最少需要的心跳数量
                     this.numberOfRenewsPerMinThreshold =
                             (int) (this.expectedNumberOfRenewsPerMin * serverConfig.getRenewalPercentThreshold());
                 }
@@ -488,6 +501,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
             // The self preservation mode is disabled, hence allowing the instances to expire.
             return true;
         }
+        //判断上一分钟内的心跳数，是否大于所需的最小心跳数
         return numberOfRenewsPerMinThreshold > 0 && getNumOfRenewsInLastMin() > numberOfRenewsPerMinThreshold;
     }
 
@@ -630,12 +644,15 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                 numberOfReplicationsLastMin.increment();
             }
             // If it is a replication already, do not replicate again as this will create a poison replication
+            //如果已经是一个同步action，就不处理了。
             if (peerEurekaNodes == Collections.EMPTY_LIST || isReplication) {
                 return;
             }
 
+            //遍历所有的集群节点，进行同步
             for (final PeerEurekaNode node : peerEurekaNodes.getPeerEurekaNodes()) {
                 // If the url represents this host, do not replicate to yourself.
+                //排除自己
                 if (peerEurekaNodes.isThisMyUrl(node.getServiceUrl())) {
                     continue;
                 }
