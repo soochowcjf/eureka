@@ -94,12 +94,17 @@ class AcceptorExecutor<ID, T> {
                      long maxBatchingDelay,
                      long congestionRetryDelayMs,
                      long networkFailureRetryMs) {
+        //队列最大10000
         this.maxBufferSize = maxBufferSize;
+        //一批最大250个
         this.maxBatchingSize = maxBatchingSize;
+        //500毫秒
         this.maxBatchingDelay = maxBatchingDelay;
+        //流量整形组件
         this.trafficShaper = new TrafficShaper(congestionRetryDelayMs, networkFailureRetryMs);
 
         ThreadGroup threadGroup = new ThreadGroup("eurekaTaskExecutors");
+        //启动一个线程，这个线程其实是一个调度线程，负责将需要重新处理的任务和接收的任务，放入到待处理队列中去
         this.acceptorThread = new Thread(threadGroup, new AcceptorRunner(), "TaskAcceptor-" + id);
         this.acceptorThread.setDaemon(true);
         this.acceptorThread.start();
@@ -183,6 +188,7 @@ class AcceptorExecutor<ID, T> {
             long scheduleTime = 0;
             while (!isShutdown.get()) {
                 try {
+                    //抽取重新处理队列和接收队列中的数据，到待处理队列中去
                     drainInputQueues();
 
                     int totalItems = processingOrder.size();
@@ -192,7 +198,9 @@ class AcceptorExecutor<ID, T> {
                         scheduleTime = now + trafficShaper.transmissionDelay();
                     }
                     if (scheduleTime <= now) {
+                        //重新分配一批中的task的数量，最大批次数量和队列当前大小两者取小
                         assignBatchWork();
+                        //重新分配单个task
                         assignSingleItemWork();
                     }
 
@@ -216,7 +224,9 @@ class AcceptorExecutor<ID, T> {
 
         private void drainInputQueues() throws InterruptedException {
             do {
+                //抽取重新处理队列，加入到待处理队列
                 drainReprocessQueue();
+                //抽取接收队列，加入到待处理队列
                 drainAcceptorQueue();
 
                 if (!isShutdown.get()) {
@@ -237,16 +247,22 @@ class AcceptorExecutor<ID, T> {
             }
         }
 
+        /**
+         * 抽干重新处理的队列，加入到待处理队列中去
+         */
         private void drainReprocessQueue() {
             long now = System.currentTimeMillis();
             while (!reprocessQueue.isEmpty() && !isFull()) {
                 TaskHolder<ID, T> taskHolder = reprocessQueue.pollLast();
                 ID id = taskHolder.getId();
                 if (taskHolder.getExpiryTime() <= now) {
+                    //如果已经过期了
                     expiredTasks++;
                 } else if (pendingTasks.containsKey(id)) {
+                    //如果被覆盖了
                     overriddenTasks++;
                 } else {
+                    //否则就加入处理未完成的队列中,加到队列的前面去
                     pendingTasks.put(id, taskHolder);
                     processingOrder.addFirst(id);
                 }
@@ -258,12 +274,15 @@ class AcceptorExecutor<ID, T> {
         }
 
         private void appendTaskHolder(TaskHolder<ID, T> taskHolder) {
+            //如果待处理队列已经满了，
             if (isFull()) {
+                //移除头部节点
                 pendingTasks.remove(processingOrder.poll());
                 queueOverflows++;
             }
             TaskHolder<ID, T> previousTask = pendingTasks.put(taskHolder.getId(), taskHolder);
             if (previousTask == null) {
+                //加入尾部节点
                 processingOrder.add(taskHolder.getId());
             } else {
                 overriddenTasks++;
@@ -288,10 +307,14 @@ class AcceptorExecutor<ID, T> {
             }
         }
 
+        /**
+         * 将待处理队列中的数据，打成包放入batchWorkQueue中去
+         */
         void assignBatchWork() {
             if (hasEnoughTasksForNextBatch()) {
                 if (batchWorkRequests.tryAcquire(1)) {
                     long now = System.currentTimeMillis();
+                    //250与待处理队列的长度取小
                     int len = Math.min(maxBatchingSize, processingOrder.size());
                     List<TaskHolder<ID, T>> holders = new ArrayList<>(len);
                     while (holders.size() < len && !processingOrder.isEmpty()) {
@@ -323,6 +346,7 @@ class AcceptorExecutor<ID, T> {
 
             TaskHolder<ID, T> nextHolder = pendingTasks.get(processingOrder.peek());
             long delay = System.currentTimeMillis() - nextHolder.getSubmitTimestamp();
+            //如果队列内的长度小于250的话，就会判断时间队列中最老的task的提交时间离当前时间是否已经超过500毫秒
             return delay >= maxBatchingDelay;
         }
     }

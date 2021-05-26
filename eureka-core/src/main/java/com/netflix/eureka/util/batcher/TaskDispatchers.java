@@ -40,9 +40,7 @@ public class TaskDispatchers {
                                                                              long congestionRetryDelayMs,
                                                                              long networkFailureRetryMs,
                                                                              TaskProcessor<T> taskProcessor) {
-        final AcceptorExecutor<ID, T> acceptorExecutor = new AcceptorExecutor<>(
-                id, maxBufferSize, workloadSize, maxBatchingDelay, congestionRetryDelayMs, networkFailureRetryMs
-        );
+        final AcceptorExecutor<ID, T> acceptorExecutor = new AcceptorExecutor<>(id, maxBufferSize, workloadSize, maxBatchingDelay, congestionRetryDelayMs, networkFailureRetryMs);
         final TaskExecutors<ID, T> taskExecutor = TaskExecutors.batchExecutors(id, workerCount, taskProcessor, acceptorExecutor);
         return new TaskDispatcher<ID, T>() {
             @Override

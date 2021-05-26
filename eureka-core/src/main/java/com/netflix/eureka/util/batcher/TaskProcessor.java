@@ -3,6 +3,8 @@ package com.netflix.eureka.util.batcher;
 import java.util.List;
 
 /**
+ * 任务执行器
+ *
  * An interface to be implemented by clients for task execution.
  *
  * @author Tomasz Bak
@@ -18,7 +20,14 @@ public interface TaskProcessor<T> {
      * </ul>
      */
     enum ProcessingResult {
-        Success, Congestion, TransientError, PermanentError
+        //成功
+        Success,
+        //拥堵
+        Congestion,
+        //短暂错误
+        TransientError,
+        //永久错误
+        PermanentError
     }
 
     /**

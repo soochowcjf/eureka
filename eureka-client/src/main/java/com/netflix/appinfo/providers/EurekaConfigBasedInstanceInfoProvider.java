@@ -17,6 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 基于EurekaInstanceConfig 构建一个服务实例 （InstanceInfo）
+ *
  * InstanceInfo provider that constructs the InstanceInfo this this instance using
  * EurekaInstanceConfig.
  *

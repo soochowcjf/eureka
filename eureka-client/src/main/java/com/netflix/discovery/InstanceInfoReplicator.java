@@ -61,6 +61,7 @@ class InstanceInfoReplicator implements Runnable {
 
     public void start(int initialDelayMs) {
         if (started.compareAndSet(false, true)) {
+            //设置配置信息是脏的，为了第一次注册
             instanceInfo.setIsDirty();  // for initial register
             Future next = scheduler.schedule(this, initialDelayMs, TimeUnit.SECONDS);
             scheduledPeriodicRef.set(next);
@@ -73,6 +74,7 @@ class InstanceInfoReplicator implements Runnable {
     }
 
     public boolean onDemandUpdate() {
+        //流控限制
         if (rateLimiter.acquire(burstSize, allowedRatePerMinute)) {
             if (!scheduler.isShutdown()) {
                 scheduler.submit(new Runnable() {
@@ -100,11 +102,16 @@ class InstanceInfoReplicator implements Runnable {
         }
     }
 
+    /**
+     * 同步实例信息到eureka server
+     */
     public void run() {
         try {
+            //刷新实例信息
             discoveryClient.refreshInstanceInfo();
 
             Long dirtyTimestamp = instanceInfo.isDirtyWithTime();
+            //如果服务实例的配置信息有变更的话，就同步
             if (dirtyTimestamp != null) {
                 discoveryClient.register();
                 instanceInfo.unsetIsDirty(dirtyTimestamp);
@@ -112,6 +119,7 @@ class InstanceInfoReplicator implements Runnable {
         } catch (Throwable t) {
             logger.warn("There was a problem with the instance info replicator", t);
         } finally {
+            //重新提交一个任务，30s后执行
             Future next = scheduler.schedule(this, replicationIntervalSeconds, TimeUnit.SECONDS);
             scheduledPeriodicRef.set(next);
         }

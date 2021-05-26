@@ -23,6 +23,11 @@ package com.netflix.discovery.shared.transport;
  */
 public interface EurekaHttpClientFactory {
 
+    /**
+     * 创建eureka的http客户端
+     *
+     * @return
+     */
     EurekaHttpClient newClient();
 
     void shutdown();

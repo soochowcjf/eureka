@@ -23,6 +23,8 @@ import com.google.inject.ImplementedBy;
 import com.netflix.discovery.shared.transport.EurekaTransportConfig;
 
 /**
+ * eureka client 注册服务实例到eureka server 所需要的配置信息
+ *
  * Configuration information required by the eureka clients to register an
  * instance with <em>Eureka</em> server.
  *
@@ -55,6 +57,8 @@ import com.netflix.discovery.shared.transport.EurekaTransportConfig;
 public interface EurekaClientConfig {
 
     /**
+     * 多长时间间隔去eureka server拉取一次注册表信息
+     *
      * Indicates how often(in seconds) to fetch the registry information from
      * the eureka server.
      *
@@ -63,6 +67,8 @@ public interface EurekaClientConfig {
     int getRegistryFetchIntervalSeconds();
 
     /**
+     * 多长时间间隔去eureka server去同步服务变动信息
+     *
      * Indicates how often(in seconds) to replicate instance changes to be
      * replicated to the eureka server.
      *
@@ -71,12 +77,16 @@ public interface EurekaClientConfig {
     int getInstanceInfoReplicationIntervalSeconds();
 
     /**
+     * 第一次等待多长时间去复制实例信息到eureka server
+     *
      * Indicates how long initially (in seconds) to replicate instance info
      * to the eureka server
      */
     int getInitialInstanceInfoReplicationIntervalSeconds();
 
     /**
+     *
+     *
      * Indicates how often(in seconds) to poll for changes to eureka server
      * information.
      *

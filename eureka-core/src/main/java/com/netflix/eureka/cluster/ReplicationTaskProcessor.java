@@ -17,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import static com.netflix.eureka.cluster.protocol.ReplicationInstance.ReplicationInstanceBuilder.aReplicationInstance;
 
 /**
+ * 同步任务执行器
+ *
  * @author Tomasz Bak
  */
 class ReplicationTaskProcessor implements TaskProcessor<ReplicationTask> {
@@ -49,10 +51,12 @@ class ReplicationTaskProcessor implements TaskProcessor<ReplicationTask> {
                 logger.debug("Server busy (503) reply for task {}", task.getTaskName());
                 return ProcessingResult.Congestion;
             } else {
+                //除了服务端返回成功，或者繁忙意外，其他都是任务处理失败了
                 task.handleFailure(statusCode, entity);
                 return ProcessingResult.PermanentError;
             }
         } catch (Throwable e) {
+            //如果是网络错误，就标识结果是短暂错误，可以进行重试的
             if (isNetworkConnectException(e)) {
                 logNetworkErrorSample(task, e);
                 return ProcessingResult.TransientError;

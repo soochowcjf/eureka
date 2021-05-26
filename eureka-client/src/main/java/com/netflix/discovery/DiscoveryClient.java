@@ -943,6 +943,7 @@ public class DiscoveryClient implements EurekaClient {
             // applications
             Applications applications = getApplications();
 
+            //如果是第一次或者关闭了增量拉取开关，就全量拉取
             if (clientConfig.shouldDisableDelta()
                     || (!Strings.isNullOrEmpty(clientConfig.getRegistryRefreshSingleVipAddress()))
                     || forceFullRegistryFetch
@@ -959,6 +960,7 @@ public class DiscoveryClient implements EurekaClient {
                 logger.info("Application version is -1: {}", (applications.getVersion() == -1));
                 getAndStoreFullRegistry();
             } else {
+                //增量拉取
                 getAndUpdateDelta(applications);
             }
             applications.setAppsHashCode(applications.getReconcileHashCode());
@@ -1091,7 +1093,9 @@ public class DiscoveryClient implements EurekaClient {
             String reconcileHashCode = "";
             if (fetchRegistryUpdateLock.tryLock()) {
                 try {
+                    //更新拉取的增量注册表
                     updateDelta(delta);
+                    //计算hash值
                     reconcileHashCode = getReconcileHashCode(applications);
                 } finally {
                     fetchRegistryUpdateLock.unlock();
@@ -1099,6 +1103,7 @@ public class DiscoveryClient implements EurekaClient {
             } else {
                 logger.warn("Cannot acquire update lock, aborting getAndUpdateDelta");
             }
+            //如果hash值不一致，则进行重新全量拉取
             // There is a diff in number of instances for some reason
             if (!reconcileHashCode.equals(delta.getAppsHashCode()) || clientConfig.shouldLogDeltaDiff()) {
                 reconcileAndLogDifference(delta, reconcileHashCode);  // this makes a remoteCall
@@ -1256,6 +1261,7 @@ public class DiscoveryClient implements EurekaClient {
     private void initScheduledTasks() {
         if (clientConfig.shouldFetchRegistry()) {
             // registry cache refresh timer
+            //默认30s
             int registryFetchIntervalSeconds = clientConfig.getRegistryFetchIntervalSeconds();
             int expBackOffBound = clientConfig.getCacheRefreshExecutorExponentialBackOffBound();
             scheduler.schedule(
@@ -1319,6 +1325,7 @@ public class DiscoveryClient implements EurekaClient {
                 applicationInfoManager.registerStatusChangeListener(statusChangeListener);
             }
 
+            //启动服务复制组件，定时执行注册任务，如果本地实例信息没有发生变化的话，就会执行注册
             instanceInfoReplicator.start(clientConfig.getInitialInstanceInfoReplicationIntervalSeconds());
         } else {
             logger.info("Not registering with Eureka server per configuration");
@@ -1383,6 +1390,8 @@ public class DiscoveryClient implements EurekaClient {
     }
 
     /**
+     * 刷新当前本地的实例配置信息，如果配置有修改，则将instanceInfo中的isInstanceInfoDirty设置为true，并且将lastDirtyTimestamp设置为当前时间
+     *
      * Refresh the current local instanceInfo. Note that after a valid refresh where changes are observed, the
      * isDirty flag on the instanceInfo is set to true
      */
@@ -1443,6 +1452,8 @@ public class DiscoveryClient implements EurekaClient {
     }
 
     /**
+     * 增量拉取注册中心
+     *
      * The task that fetches the registry information at specified intervals.
      *
      */

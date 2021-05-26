@@ -33,17 +33,33 @@ import com.netflix.eureka.registry.AbstractInstanceRegistry;
 public class Lease<T> {
 
     enum Action {
+        //注册 下线 续约
         Register, Cancel, Renew
     };
 
     public static final int DEFAULT_DURATION_IN_SECS = 90;
 
     private T holder;
+    /**
+     * 下线时间
+     */
     private long evictionTimestamp;
+    /**
+     * 注册时间
+     */
     private long registrationTimestamp;
+    /**
+     * 启动时间
+     */
     private long serviceUpTimestamp;
     // Make it volatile so that the expiration task would see this quicker
+    /**
+     * 最后更新时间
+     */
     private volatile long lastUpdateTimestamp;
+    /**
+     * 续约周期
+     */
     private long duration;
 
     public Lease(T r, int durationInSecs) {

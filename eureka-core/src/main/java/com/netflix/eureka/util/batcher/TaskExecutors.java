@@ -37,7 +37,9 @@ class TaskExecutors<ID, T> {
         this.workerThreads = new ArrayList<>();
 
         ThreadGroup threadGroup = new ThreadGroup("eurekaTaskExecutors");
+        //默认20个线程
         for (int i = 0; i < workerCount; i++) {
+            //创建20个线程，每个线程都在从AcceptorExecutor中的队列进行取task，然后进行同步给其他的eureka server节点
             WorkerRunnable<ID, T> runnable = workerRunnableFactory.create(i);
             Thread workerThread = new Thread(threadGroup, runnable, runnable.getWorkerName());
             workerThreads.add(workerThread);
@@ -180,10 +182,13 @@ class TaskExecutors<ID, T> {
         public void run() {
             try {
                 while (!isShutdown.get()) {
+                    //从AcceptorExecutor中的队列中，取出一个List<TaskHolder>
                     List<TaskHolder<ID, T>> holders = getWork();
                     metrics.registerExpiryTimes(holders);
 
+                    //从List<TaskHolder>取出所有的task
                     List<T> tasks = getTasksOf(holders);
+                    //执行同步组件进行task的同步
                     ProcessingResult result = processor.process(tasks);
                     switch (result) {
                         case Success:
@@ -209,6 +214,7 @@ class TaskExecutors<ID, T> {
             BlockingQueue<List<TaskHolder<ID, T>>> workQueue = taskDispatcher.requestWorkItems();
             List<TaskHolder<ID, T>> result;
             do {
+                //每次取一个
                 result = workQueue.poll(1, TimeUnit.SECONDS);
             } while (!isShutdown.get() && result == null);
             return result;

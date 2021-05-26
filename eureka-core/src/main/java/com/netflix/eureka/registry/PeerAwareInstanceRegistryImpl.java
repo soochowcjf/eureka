@@ -99,7 +99,11 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     private boolean peerInstancesTransferEmptyOnStartup = true;
 
     public enum Action {
-        Heartbeat, Register, Cancel, StatusUpdate, DeleteStatusOverride;
+        Heartbeat,
+        Register,
+        Cancel,
+        StatusUpdate,
+        DeleteStatusOverride;
 
         private com.netflix.servo.monitor.Timer timer = Monitors.newTimer(this.name());
 
@@ -407,7 +411,9 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         if (info.getLeaseInfo() != null && info.getLeaseInfo().getDurationInSecs() > 0) {
             leaseDuration = info.getLeaseInfo().getDurationInSecs();
         }
+        //调用父类进行服务的注册
         super.register(info, leaseDuration, isReplication);
+        //同步服务注册信息到集群其他节点
         replicateToPeers(Action.Register, info.getAppName(), info.getId(), info, null, isReplication);
     }
 

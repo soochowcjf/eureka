@@ -111,6 +111,7 @@ public class RetryableEurekaHttpClient extends EurekaHttpClientDecorator {
                     throw new TransportException("Cannot execute request on any known server");
                 }
 
+                //从配置的集群地址中，挑一个进行建立连接
                 currentEndpoint = candidateHosts.get(endpointIdx++);
                 currentHttpClient = clientFactory.newClient(currentEndpoint);
             }

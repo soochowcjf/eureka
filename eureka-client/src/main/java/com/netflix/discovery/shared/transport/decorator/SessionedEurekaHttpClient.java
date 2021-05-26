@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory;
 import static com.netflix.discovery.EurekaClientNames.METRIC_TRANSPORT_PREFIX;
 
 /**
+ * 该eureka客户端具有一段时间的保活，一段时间之后需要重连，以保证集群的负载均衡
+ *
  * {@link SessionedEurekaHttpClient} enforces full reconnect at a regular interval (a session), preventing
  * a client to sticking to a particular Eureka server instance forever. This in turn guarantees even
  * load distribution in case of cluster topology change.
@@ -44,11 +46,17 @@ public class SessionedEurekaHttpClient extends EurekaHttpClientDecorator {
     private final Random random = new Random();
 
     private final String name;
+    /**
+     * 创建底层http连接客户端的工厂类，底层其实还会再代理给创建重试http连接客户端的工厂
+     */
     private final EurekaHttpClientFactory clientFactory;
     private final long sessionDurationMs;
     private volatile long currentSessionDurationMs;
 
     private volatile long lastReconnectTimeStamp = -1;
+    /**
+     * 真正的eurekaHttpClient的原子引用
+     */
     private final AtomicReference<EurekaHttpClient> eurekaHttpClientRef = new AtomicReference<>();
 
     public SessionedEurekaHttpClient(String name, EurekaHttpClientFactory clientFactory, long sessionDurationMs) {
@@ -63,6 +71,7 @@ public class SessionedEurekaHttpClient extends EurekaHttpClientDecorator {
     protected <R> EurekaHttpResponse<R> execute(RequestExecutor<R> requestExecutor) {
         long now = System.currentTimeMillis();
         long delay = now - lastReconnectTimeStamp;
+        //客户端的保活
         if (delay >= currentSessionDurationMs) {
             logger.debug("Ending a session and starting anew");
             lastReconnectTimeStamp = now;

@@ -144,6 +144,8 @@ public class JerseyEurekaHttpClientFactory implements TransportClientFactory {
     }
 
     /**
+     * JerseyEurekaHttpClientFactory 的构造器
+     *
      * Currently use EurekaJerseyClientBuilder. Once old transport in DiscoveryClient is removed, incorporate
      * EurekaJerseyClientBuilder here, and remove it.
      */

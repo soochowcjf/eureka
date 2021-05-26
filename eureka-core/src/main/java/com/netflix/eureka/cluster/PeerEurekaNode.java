@@ -33,6 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 单个eureka server节点，负责同步所有的更新操作（注册、续约、下线、过期摘除、状态变更）到其他eureka server节点
+ *
  * The <code>PeerEurekaNode</code> represents a peer node to which information
  * should be shared from this node.
  *
@@ -101,16 +103,26 @@ public class PeerEurekaNode {
 
         String batcherName = getBatcherName();
         ReplicationTaskProcessor taskProcessor = new ReplicationTaskProcessor(targetHost, replicationClient);
+        //批量调度组件
         this.batchingDispatcher = TaskDispatchers.createBatchingTaskDispatcher(
                 batcherName,
+                //默认队列最大长度是10000
                 config.getMaxElementsInPeerReplicationPool(),
+                //250
                 batchSize,
+                //默认同步线程是20个
                 config.getMaxThreadsForPeerReplication(),
+                //最大延迟是500毫秒
                 maxBatchingDelayMs,
+                //如果服务出现拥堵，线程等待1s
                 serverUnavailableSleepTimeMs,
+                //如果网络故障，重试登录100毫秒
                 retrySleepTimeMs,
+                //任务处理器
                 taskProcessor
         );
+
+        //非批量的调度组件
         this.nonBatchingDispatcher = TaskDispatchers.createNonBatchingTaskDispatcher(
                 targetHost,
                 config.getMaxElementsInStatusReplicationPool(),
@@ -134,6 +146,7 @@ public class PeerEurekaNode {
     public void register(final InstanceInfo info) throws Exception {
         long expiryTime = System.currentTimeMillis() + getLeaseRenewalOf(info);
         batchingDispatcher.process(
+                //register#ServiceA/00001
                 taskId("register", info),
                 new InstanceReplicationTask(targetHost, Action.Register, info, null, true) {
                     public EurekaHttpResponse<Void> execute() {

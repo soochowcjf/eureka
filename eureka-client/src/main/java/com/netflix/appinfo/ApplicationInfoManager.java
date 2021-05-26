@@ -238,9 +238,23 @@ public class ApplicationInfoManager {
         }
     }
 
+    /**
+     * 状态变更观察者
+     */
     public static interface StatusChangeListener {
+
+        /**
+         * listener的id
+         *
+         * @return
+         */
         String getId();
 
+        /**
+         * 通知发生状态变更事件
+         *
+         * @param statusChangeEvent
+         */
         void notify(StatusChangeEvent statusChangeEvent);
     }
 

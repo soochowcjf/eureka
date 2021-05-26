@@ -11,6 +11,8 @@ import com.netflix.discovery.converters.wrappers.DecoderWrapper;
 import com.netflix.discovery.converters.wrappers.EncoderWrapper;
 
 /**
+ * 【eureka client】创建工厂 的builder组件
+ *
  * @author Tomasz Bak
  */
 public abstract class EurekaClientFactoryBuilder<F, B extends EurekaClientFactoryBuilder<F, B>> {

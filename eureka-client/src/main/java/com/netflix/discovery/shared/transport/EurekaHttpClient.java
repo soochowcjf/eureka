@@ -12,6 +12,12 @@ import com.netflix.discovery.shared.Applications;
  */
 public interface EurekaHttpClient {
 
+    /**
+     * 注册实例
+     *
+     * @param info
+     * @return
+     */
     EurekaHttpResponse<Void> register(InstanceInfo info);
 
     EurekaHttpResponse<Void> cancel(String appName, String id);

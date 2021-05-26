@@ -22,6 +22,8 @@ import com.fasterxml.jackson.annotation.JsonRootName;
 import com.thoughtworks.xstream.annotations.XStreamOmitField;
 
 /**
+ * 服务实例的租约配置信息
+ *
  * Represents the <em>lease</em> information with <em>Eureka</em>.
  *
  * <p>
@@ -41,13 +43,31 @@ public class LeaseInfo {
     public static final int DEFAULT_LEASE_DURATION = 90;
 
     // Client settings
+    /**
+     * 默认心跳续约的间隔
+     */
     private int renewalIntervalInSecs = DEFAULT_LEASE_RENEWAL_INTERVAL;
+    /**
+     * 租约的有效期
+     */
     private int durationInSecs = DEFAULT_LEASE_DURATION;
 
     // Server populated
+    /**
+     * 注册时间
+     */
     private long registrationTimestamp;
+    /**
+     * 最后一次续约时间
+     */
     private long lastRenewalTimestamp;
+    /**
+     * 下线时间
+     */
     private long evictionTimestamp;
+    /**
+     * 服务上线时间
+     */
     private long serviceUpTimestamp;
 
     public static final class Builder {

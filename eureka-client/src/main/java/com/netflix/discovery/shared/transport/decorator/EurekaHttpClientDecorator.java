@@ -24,11 +24,18 @@ import com.netflix.discovery.shared.transport.EurekaHttpClient;
 import com.netflix.discovery.shared.transport.EurekaHttpResponse;
 
 /**
+ * eurekaHttpClient装饰器
+ *
+ * 这么一顿骚操作呢，其实就是装饰模式的变种
+ * 将调用的执行操作封装到类中，然后将真正执行操作的代理类，下放到子类中去
+ *
  * @author Tomasz Bak
  */
 public abstract class EurekaHttpClientDecorator implements EurekaHttpClient {
 
     public enum RequestType {
+
+        //请求类型
         Register,
         Cancel,
         SendHeartBeat,
@@ -43,12 +50,33 @@ public abstract class EurekaHttpClientDecorator implements EurekaHttpClient {
         GetApplicationInstance
     }
 
+    /**
+     * 请求执行器
+     *
+     * @param <R>
+     */
     public interface RequestExecutor<R> {
+        /**
+         * 执行请求
+         * @param delegate
+         * @return
+         */
         EurekaHttpResponse<R> execute(EurekaHttpClient delegate);
 
+        /**
+         * 请求类型
+         * @return
+         */
         RequestType getRequestType();
     }
 
+    /**
+     * 执行请求
+     *
+     * @param requestExecutor
+     * @param <R>
+     * @return
+     */
     protected abstract <R> EurekaHttpResponse<R> execute(RequestExecutor<R> requestExecutor);
 
     @Override
